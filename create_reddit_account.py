@@ -15,11 +15,12 @@ from notifypy import Notify
 from rich.console import Console
 from rich.theme import Theme
 from selenium import webdriver
-from selenium.common.exceptions import WebDriverException, NoSuchWindowException
+from selenium.common.exceptions import WebDriverException, \
+    NoSuchWindowException
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
 from tqdm import tqdm
 from webdriver_manager.chrome import ChromeDriverManager
@@ -87,8 +88,8 @@ def get_messages(api_key, email):
 
 def signup_info():
     def gen_username():
-        g_username = factory.build(
-            dict, user=factory.Faker('user_name'))['user']
+        g_username = factory.build(dict,
+                                   user=factory.Faker('user_name'))['user']
         rand_int = random.randint(0, 100)
         return f'{g_username}_{rand_int}'
 
@@ -132,7 +133,7 @@ def main():
     }
     for k, v in elements.items():
         el = WebDriverWait(driver,
-                           20).until(EC.presence_of_element_located(
+                           20).until(ec.presence_of_element_located(
                                (By.ID, k)))
         if k == 'regEmail':
             el.click()
@@ -156,8 +157,7 @@ def main():
                 style='critical')
             ip_changed = console.input(
                 '[#f1fa8c]Have you switched your IP in the past 10 mins ('
-                'e.g., using a VPN) (y/n)? '
-            )
+                'e.g., using a VPN) (y/n)? ')
             if ip_changed.lower() != 'y':
                 cprint(
                     'Then wait... You will be notified when everything is '
@@ -175,14 +175,14 @@ def main():
                     pass
 
     WebDriverWait(driver, 20).until(
-        EC.presence_of_element_located((By.ID, 'g-recaptcha'))).click()
+        ec.presence_of_element_located((By.ID, 'g-recaptcha'))).click()
     print()
     ans = console.input('[#f1fa8c]Solved reCAPTCHA (y/n)? ')
 
     if ans.lower() == 'y':
         try:
             WebDriverWait(driver, 20).until(
-                EC.presence_of_element_located(
+                ec.presence_of_element_located(
                     (By.CLASS_NAME, 'SignupButton'))).click()
         except Exception:
             pass
@@ -234,9 +234,8 @@ if __name__ == '__main__':
         os.environ['WDM_LOG_LEVEL'] = '0'
         os.environ['WDM_PRINT_FIRST_LINE'] = 'False'
         os.environ['WDM_LOCAL'] = '1'
-        os.environ['keep_alive'] = '1'
         driver = webdriver.Chrome(ChromeDriverManager().install())
-        
+
     try:
         main()
     except (WebDriverException, NoSuchWindowException):
