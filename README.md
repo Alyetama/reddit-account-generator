@@ -17,7 +17,7 @@ $ pip install -r requirements.txt
 1. Sign up on https://mailsac.com/register
 2. Go to https://mailsac.com/api-keys
 3. Click `Generate New API Secret` and copy the `Secret` string
-5. Create an .env file in the respoitory and replacing `replace_this_with_the_api_key` with what you just copied:
+5. Create an `.env` file in the respoitory, replacing `replace_this_with_the_api_key` with what you just copied:
 ```bash
 $ echo "SECRET=replace_this_with_the_api_key" > .env
 ```
