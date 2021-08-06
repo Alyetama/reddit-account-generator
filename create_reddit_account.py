@@ -47,7 +47,7 @@ def return_time(ts):
 
 
 def validate_email(api_key, email):
-    conn = http.client.HTTPSConnection("mailsac.com")
+    conn = http.client.HTTPSConnection('mailsac.com')
     headers = {'Mailsac-Key': api_key}
     conn.request('GET', f'/api/validations/addresses/{email}', headers=headers)
     res = conn.getresponse()
@@ -76,12 +76,12 @@ def create_email_address(api_key):
 
 
 def get_messages(api_key, email):
-    conn = http.client.HTTPSConnection("mailsac.com")
+    conn = http.client.HTTPSConnection('mailsac.com')
     headers = {'Mailsac-Key': api_key}
     conn.request('GET', f'/api/addresses/{email}/messages', headers=headers)
     res = conn.getresponse()
     data = res.read()
-    res_dict = json.loads(data.decode("utf-8"))
+    res_dict = json.loads(data.decode('utf-8'))
 
     return res_dict
 
