@@ -224,7 +224,6 @@ if __name__ == '__main__':
     secret = os.getenv('SECRET')
 
     theme = custom_theme()
-    errconsole = Console(theme=theme, stderr=True)
     console = Console(theme=theme)
     cprint = console.print
 
@@ -243,4 +242,4 @@ if __name__ == '__main__':
     except Exception as e:
         tb = traceback.format_exception(None, e, e.__traceback__)
         for line in tb:
-            errconsole.print(line, style='critical')
+            console.print(line, style='critical')
