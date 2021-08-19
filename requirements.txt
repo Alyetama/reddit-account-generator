@@ -1,7 +1,8 @@
-rich~=10.6.0
-selenium~=3.141.0
-tqdm~=4.56.2
-factory_boy~=3.2.0
-notify_py~=0.3.3
-webdriver-manager~=3.4.2
-python-dotenv~=0.17.1
+rich>=10.6.0
+selenium>=3.141.0
+tqdm>=4.56.2
+factory_boy>=3.2.0
+notify_py>=0.3.3
+webdriver-manager>=3.4.2
+python-dotenv>=0.17.1
+requests>=2.26.0
