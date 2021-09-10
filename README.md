@@ -39,8 +39,31 @@ $ echo "EMAIL=<YOUR_EMAIL>" > .env
 $ python create_reddit_account.py
 ```
 
-### Additional notes: Your data
+---
+
+## Additional notes
+
+### Your data
 Your accounts data file is encryoted by default, and the key is stored in your system's keyring service (e.g., Keychain, Windows Credential Locker, etc.).  You can unencrypt the data to view it by running:
 ```python
 $ python encrypted_json.py
 ```
+
+### Automatic reCAPTCHA solving
+If you have an API key with 2Captcha, you can use the fully automated accounts generator. For this, you will need to store the API key in your keyring service, replacing <YOUR_API_KEY> with your 2Captcha API key.
+
+```python
+import keyring
+
+keyring.set_password('secrets', 'reddit', '<YOUR_API_KEY>'): Store the password in the keyring.
+```
+
+Then you can run the fully automated script:
+```bash
+$ python auto_generator.py
+```
+
+---
+
+## Disclaimer
+This project is a proof of concept and is made for educational purposes only. Users of this program are expected to follow [Reddit User Agreement](https://www.redditinc.com/policies/user-agreement-october-15-2020). Developers assume no liability and are not responsible for any misuse or damage caused by this program.
