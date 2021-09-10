@@ -55,7 +55,7 @@ If you have an API key with 2Captcha, you can use the fully automated accounts g
 ```python
 import keyring
 
-keyring.set_password('secrets', 'reddit', '<YOUR_API_KEY>'): Store the password in the keyring.
+keyring.set_password('secrets', 'reddit', '<YOUR_API_KEY>')
 ```
 
 Then you can run the fully automated script:
