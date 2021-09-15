@@ -2,7 +2,6 @@
 # coding: utf-8
 
 import json
-import keyring
 import os
 import random
 import re
@@ -12,36 +11,27 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-from cryptography.fernet import Fernet
 import dotenv
 import factory
 import imap_tools
+import keyring
 from bs4 import BeautifulSoup
-from rich.console import Console
-from rich.theme import Theme
+from cryptography.fernet import Fernet
 from selenium import webdriver
+from selenium.common.exceptions import ElementNotInteractableException
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
-from selenium.common.exceptions import ElementNotInteractableException
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
 from tqdm import tqdm
 from twocaptcha import TwoCaptcha
 
+import reddit_settings
 from check_shadowban import userinfo
 from encrypted_json import encrypted_json
-
-
-def custom_theme():
-    my_theme = Theme({
-        'critical': '#ff5555 bold',
-        'warning': '#f1fa8c',
-        'info': '#8be9fd',
-        'OK': '#50fa7b'
-    })
-    return my_theme
+from helpers import console, cprint
 
 
 def return_time():
@@ -49,8 +39,11 @@ def return_time():
     unix_time = time.time()
     return time_string, unix_time
 
+
 def str_to_unix(ts: str):
-    return time.mktime(datetime.strptime(ts, '%Y-%m-%d %H:%M:%S.%f').timetuple())
+    return time.mktime(
+        datetime.strptime(ts, '%Y-%m-%d %H:%M:%S.%f').timetuple())
+
 
 def signup_info(email_address):
     def gen_username():
@@ -90,7 +83,8 @@ def signup_info(email_address):
 def verify_account(addr, driver):
     mail_p = keyring.get_password('gmail', 'reddit')
     if not mail_p:
-        cprint('Did not find a password for your email in your keyring...', style='critical')
+        cprint('Did not find a password for your email in your keyring...',
+               style='critical')
         mail_p = input('Email password: ')
         keyring.set_password('gmail', 'reddit', mail_p)
     keys = {
@@ -129,8 +123,8 @@ def main():
     }
     for k, v in elements.items():
         el = WebDriverWait(driver,
-                           20).until(ec.presence_of_element_located(
-                               (By.ID, k)))
+                           20).until(
+            ec.presence_of_element_located((By.ID, k)))
         if k == 'regEmail':
             el.click()
             ActionChains(driver).send_keys(v).send_keys(Keys.RETURN).perform()
@@ -140,8 +134,7 @@ def main():
 
     timestamp, now = return_time()
     if Path(fpath).exists():
-        with open(fpath) as j:
-            data = encrypted_json(data_path=fpath)
+        data = encrypted_json(data_path=fpath)
         then = str_to_unix(data[-1]['created_on'])
         if (now - then) < 600:
             cprint('You need to wait 10 minutes between new accounts...',
@@ -153,12 +146,15 @@ def main():
             time_left = 600 - int(now - then)
             for _ in tqdm(range(time_left + 5)):
                 time.sleep(1)
+    else:
+        data = encrypted_json(data_path=fpath)
 
     timestamp, _ = return_time()
 
     API_KEY = keyring.get_password('2captcha', 'API_KEY')
     if not API_KEY:
-        cprint('Did not find an API key for 2Captcha in your keyring...', style='critical')
+        cprint('Did not find an API key for 2Captcha in your keyring...',
+               style='critical')
         api_key = input('2Captch API Key: ')
         keyring.set_password('2captcha', 'API_KEY', api_key)
     solver = TwoCaptcha(API_KEY)
@@ -167,7 +163,6 @@ def main():
         sitekey='6LeTnxkTAAAAAN9QEuDZRpn90WwKk_R1TRW_g-JC',
         url='https://www.reddit.com/account/register/')
     cprint('Solved!', style='info')
-    captcha = driver.find_element(By.ID, 'g-recaptcha-response')
     driver.execute_script(
         '''var element=document.getElementById("g-recaptcha-response");
         element.style.display="";''')
@@ -217,26 +212,36 @@ def main():
         cprint('Passed!', style='OK')
         elements.update({'shadowbanned': False})
     else:
-        cprint('Something went wrong! The account did [b]not[/b] pass the check!',
+        cprint('Something went wrong! The account did [b]not[/b] pass the '
+               'check!',
                style='critical')
         raise SystemExit(1)
+
+    elements_ = {'index': data[-1]['index'] + 1}
+    elements_.update(elements)
 
     key = keyring.get_password('secrets', 'reddit')
     fernet = Fernet(key)
 
     if not Path(fpath).exists():
         Path(fpath).touch()
-        elements = [elements]
+        elements_ = [elements_]  # noqa
     else:
         with open(fpath, 'r+b') as j:
             d = encrypted_json(data_path=fpath)
-            d.append(elements)
+            d.append(elements_)
             j.seek(0, 0)
-            encrypted = fernet.encrypt(bytes(json.dumps(d, indent=4), encoding='utf-8'))
+            encrypted = fernet.encrypt(
+                bytes(json.dumps(d, indent=4), encoding='utf-8'))
             j.seek(0, 0)
             j.write(encrypted)
 
     console.rule('Done!', style='OK')
+
+    reddit_settings.disable_tracking(driver)
+    mysettings = reddit_settings.build_settings(driver)
+    reddit_settings.change_settings(driver, mysettings)
+
     driver.quit()
 
 
@@ -245,6 +250,4 @@ if __name__ == '__main__':
         fpath = f'{Path(__file__).parent}/reddit_accounts.json'
     except NameError:
         fpath = 'reddit_accounts.json'
-    console = Console(theme=custom_theme())
-    cprint = console.print
     main()

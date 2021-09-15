@@ -126,11 +126,7 @@ def main():
     console.rule('Starting...', style='OK')
     driver.get('https://www.reddit.com/account/register/')
     email, username, passwd = signup_info()
-    elements = {
-        'regEmail': email,
-        'regUsername': username,
-        'regPassword': passwd
-    }
+    elements = dict(regEmail=email, regUsername=username, regPassword=passwd)
     for k, v in elements.items():
         el = WebDriverWait(driver,
                            20).until(ec.presence_of_element_located(
@@ -171,7 +167,7 @@ def main():
                     time.sleep(1)
                 try:
                     notification.send()
-                except Exception:
+                except Exception:  # noqa
                     pass
 
     WebDriverWait(driver, 20).until(
@@ -184,7 +180,7 @@ def main():
             WebDriverWait(driver, 20).until(
                 ec.presence_of_element_located(
                     (By.CLASS_NAME, 'SignupButton'))).click()
-        except Exception:
+        except Exception:  # noqa
             pass
         time.sleep(3)
         verification_link = verify_email(email)
