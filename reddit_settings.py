@@ -1,16 +1,16 @@
 import json
+import time
 from pathlib import Path
 
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.by import By
 
 try:
-    from default_settings import default_settings  # noqa
-except ModuleNotFoundError:
+    from default_settings import ResetSettings, DefaultSettings  # noqa
+except ImportError:
     pass
 
 settings = {}
-
 
 class MyException(Exception):
     pass
@@ -170,29 +170,32 @@ def create_settings_file(settings_):
         lines.append(f'{k.replace("-", "_")} = {value}{label}')
     lines = '\n    '.join([line.lstrip() for line in lines])
 
-    with open('default_settings.py', 'w') as f:
+    with open(f'{Path(__file__).parent}/default_settings.py', 'w') as f:
+        f.write('class ResetSettings:\n    ')
+        f.write('reset = False\n\n')
         f.write('class default_settings:\n    ')
         f.writelines(lines)
         f.write('\n')
 
 
-def change_settings(driver, mysettings):
-    try:
-        fname = Path(f'{__file__}/default_settings.py')
-    except NameError:
-        fname = Path('default_settings.py')
-    if not Path(fname).exists():
+def change_settings(driver):
+    mysettings = build_settings(driver)
+    if not Path(f'{Path(__file__).parent}/default_settings.py').exists():
         create_settings_file(mysettings)
-        from default_settings import default_settings  # noqa
+        from default_settings import ResetSettings, DefaultSettings  # noqa
+    else:
+        from default_settings import ResetSettings, DefaultSettings
+        if ResetSettings.reset:
+            create_settings_file(mysettings)
 
-    if default_settings.no_profanity and not default_settings.over_18:
-        default_settings.over_18 = False
-    if default_settings.label_nsfw and not default_settings.no_profanity:
-        default_settings.no_profanity = False
-    settings_items = list(set(default_settings.__dict__) & set(mysettings))
+    if DefaultSettings.no_profanity and not DefaultSettings.over_18:
+        DefaultSettings.over_18 = False
+    if DefaultSettings.label_nsfw and not DefaultSettings.no_profanity:
+        DefaultSettings.no_profanity = False
+    settings_items = list(set(DefaultSettings.__dict__) & set(mysettings))
 
     for item in settings_items:
-        value = dict(default_settings.__dict__)[item]
+        value = dict(DefaultSettings.__dict__)[item]
         element = mysettings[item]['element']
         try:
 
@@ -219,3 +222,6 @@ def change_settings(driver, mysettings):
                                 'arguments[0].setAttribute("selected",'
                                 'arguments[1])',
                                 child_e, 'selected')
+    time.sleep(1)
+    driver.find_element(By.CLASS_NAME, 'save-preferences').click()
+    time.sleep(2)

@@ -54,4 +54,8 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except requests.exceptions.ConnectionError:
+        raise ConnectionError('The programm encountered a connection error! '
+            'Try again.')

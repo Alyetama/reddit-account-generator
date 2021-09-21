@@ -6,7 +6,10 @@ import os
 import random
 import re
 import secrets
+import shutil
+import signal
 import string
+import sys
 import time
 from datetime import datetime
 from pathlib import Path
@@ -38,6 +41,10 @@ def return_time():
     time_string = str(datetime.now())
     unix_time = time.time()
     return time_string, unix_time
+
+
+def handler(signum, frame):
+    raise Exception('No response.')
 
 
 def str_to_unix(ts: str):
@@ -108,9 +115,13 @@ def verify_account(addr, driver):
 
 def main():
     console.rule('Starting...', style='OK')
-    service = Service('/opt/homebrew/bin/chromedriver')
+    service = Service(driver_path)
     options = webdriver.ChromeOptions()
-    options.add_argument('headless')
+    if len(sys.argv) > 1:
+        if sys.argv[1] == '--disable-headless':
+            pass
+    else:
+        options.add_argument('headless')
     driver = webdriver.Chrome(options=options, service=service)
     driver.get('https://www.reddit.com/account/register/')
     dotenv.load_dotenv(f'{Path(__file__).parent}/.env')
@@ -137,15 +148,27 @@ def main():
         data = encrypted_json(data_path=fpath)
         then = str_to_unix(data[-1]['created_on'])
         if (now - then) < 600:
-            cprint('You need to wait 10 minutes between new accounts...',
-                   style='warning')
-            cprint(
-                'DO NOT close this.  The program will continue when the '
-                'cooldown period has passed.',
-                style='critical')
             time_left = 600 - int(now - then)
-            for _ in tqdm(range(time_left + 5)):
-                time.sleep(1)
+            signal.signal(signal.SIGALRM, handler)
+            signal.alarm(30)
+            try:
+                cprint('You don\'t need to respond if not applicable.  The program will automatically resume in 30 seconds.', style='warning')
+                ans = input('Have you changed your IP address? (y/n) ')
+                if ans.lower() != 'y':
+                    signal.alarm(0)
+                    cprint('You need to wait 10 minutes between new accounts...',
+                           style='warning')
+                    cprint(
+                        'DO NOT close this.  The program will continue when the '
+                        'cooldown period has passed.',
+                        style='critical')
+                    for _ in tqdm(range(time_left + 5)):
+                        time.sleep(1)
+                else:
+                    signal.alarm(0)
+            except Exception:
+                for _ in tqdm(range(time_left - 25)):
+                    time.sleep(1)  
     else:
         data = encrypted_json(data_path=fpath)
 
@@ -197,7 +220,13 @@ def main():
                 pass
     time.sleep(5)
 
+    time.sleep(60)
     verified = verify_account(email, driver)
+    try:
+        time.sleep(3)
+        driver.find_element(By.CLASS_NAME, 'verify-button').click()
+    except:
+        pass
     if verified:
         elements.update({'verified': True})
         cprint('Account verified!', style='OK')
@@ -236,18 +265,30 @@ def main():
             j.seek(0, 0)
             j.write(encrypted)
 
-    console.rule('Done!', style='OK')
-
     reddit_settings.disable_tracking(driver)
-    mysettings = reddit_settings.build_settings(driver)
-    reddit_settings.change_settings(driver, mysettings)
+    reddit_settings.change_settings(driver)
 
     driver.quit()
+    console.rule('Done!', style='OK')
 
 
 if __name__ == '__main__':
+    parent = Path(__file__).parent
     try:
-        fpath = f'{Path(__file__).parent}/reddit_accounts.json'
+        fpath = f'{parent}/reddit_accounts.json'
     except NameError:
         fpath = 'reddit_accounts.json'
-    main()
+    driver_path = shutil.which('chromedriver')
+    if not driver_path:
+        if Path(f'{parent}/.chrome_driver_path').exists():
+            with open(f'{parent}/.chrome_driver_path') as f:
+                driver_path = f.readlines()[0]
+        else:
+            ans_path = input('Cannot find chromedriver!  '
+                'Enter your chromedriver path manually: ')
+            with open(f'{parent}/.chrome_driver_path', 'w') as f:
+                f.write(ans_path + '\n')
+    try:
+        main()
+    except KeyboardInterrupt:
+        raise SystemExit(0)
