@@ -40,8 +40,10 @@ def print_diff(obj1, obj2) -> str:
         e = ' ' * len(str(n))
         m = ' ' * (5 - len(str(n)))
         r = ' ' * (len(str(max(s1))) - (len(str(n))) + 2)
-        if x not in ['{', '}']:
+        if len(x) > 1:
             dots = '·' * 4
+        elif x in list('{}'):
+            dots = '·' * 2
         else:
             dots = ''
         if x != y:
@@ -52,7 +54,7 @@ def print_diff(obj1, obj2) -> str:
             changed_y = f'[#C8D1D9 on #1C4428]{e}{m}{n}{r}' \
                         f'[#49534E on #12261D]{dots}[#C9D1D9 on #12261D]{y}'
             if sys.stdout.isatty():
-                cprints.append('\n'.join(skipped[-3:]))
+                cprints.append('\n'.join(skipped[-6:]))
                 cprints.append(changed_x + ' ' * whitespace(changed_x))
                 cprints.append(changed_y + ' ' * whitespace(changed_y))
             else:

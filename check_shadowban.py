@@ -1,7 +1,7 @@
 import concurrent.futures
 import copy
+import http.client
 import json
-import requests
 
 from cryptography.fernet import Fernet
 import keyring
@@ -12,26 +12,34 @@ from helpers import print_diff, data_path
 
 def userinfo(username):
     while True:
-        r = requests.get(f'https://www.reddit.com/user/{username}/about/.json')
-        if r.status_code == 429:
+        conn = http.client.HTTPSConnection('reddit.com')
+        conn.request("GET", f'https://www.reddit.com/user/{username}/about/.json')
+        r = conn.getresponse()
+        if r.status == 429:
             continue
         else:
-            response = r.status_code
+            response = r.status
             if response == 404:
                 notfound = True
+                return notfound, None
             else:
                 notfound = False
-            return notfound
+                data = json.loads(r.read().decode("utf-8"))
+                try:
+                    verified = data['data']['has_verified_email']
+                except KeyError:
+                    return notfound, None
+                return notfound, verified
 
 
 def main():
     def check(n, account):
         username = account['username']
-        shadowbanned = userinfo(username)
-        if shadowbanned:
-            accounts[n].update({'shadowbanned': True})
+        shadowbanned, verified = userinfo(username)
+        if verified is not None:
+            account.update({'shadowbanned': shadowbanned, 'verified': verified})
         else:
-            accounts[n].update({'shadowbanned': False})
+            account.update({'shadowbanned': shadowbanned})
 
     accounts = encrypted_json(data_path)
     accounts_before_check = copy.deepcopy(accounts)
@@ -56,6 +64,5 @@ def main():
 if __name__ == '__main__':
     try:
         main()
-    except requests.exceptions.ConnectionError:
-        raise ConnectionError('The programm encountered a connection error! '
-            'Try again.')
+    except http.client.HTTPException:
+        raise ConnectionError('The programm encountered an error! Try again.')

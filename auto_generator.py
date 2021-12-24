@@ -97,20 +97,28 @@ def verify_account(addr, driver):
     keys = {
         'subject': 'Verify your Reddit email address',
         'date': datetime.today().date(),
-        'seen': False
+        'seen': False,
+        'to': addr
     }
 
-    with imap_tools.MailBox('imap.gmail.com').login(addr, mail_p) as mailbox:
-        for msg in mailbox.fetch(imap_tools.AND(**keys)):
-            content = msg.html
-            soup = BeautifulSoup(content, 'lxml')
-            for link in soup.find_all('a', href=True):
-                if '/verification/' in link['href']:
-                    verf_link = link['href']
-                    break
-            driver.get(verf_link)
-            mailbox.flag(msg.uid, imap_tools.MailMessageFlags.SEEN, True)
-            return verf_link
+    while True:
+        with imap_tools.MailBox('imap.gmail.com').login(addr,
+                                                        mail_p) as mailbox:
+            for msg in mailbox.fetch(imap_tools.AND(**keys)):
+                if msg.to[0] == addr:
+                    content = msg.html
+                    soup = BeautifulSoup(content, 'lxml')
+                    for link in soup.find_all('a', href=True):
+                        if '/verification/' in link['href']:
+                            verf_link = link['href']
+                            break
+                    driver.get(verf_link)
+                    mailbox.flag(msg.uid, imap_tools.MailMessageFlags.SEEN,
+                                 True)
+                    return verf_link
+                else:
+                    continue
+        time.sleep(3)
 
 
 def main():
@@ -134,8 +142,8 @@ def main():
     }
     for k, v in elements.items():
         el = WebDriverWait(driver,
-                           20).until(
-            ec.presence_of_element_located((By.ID, k)))
+                           20).until(ec.presence_of_element_located(
+                               (By.ID, k)))
         if k == 'regEmail':
             el.click()
             ActionChains(driver).send_keys(v).send_keys(Keys.RETURN).perform()
@@ -152,12 +160,15 @@ def main():
             signal.signal(signal.SIGALRM, handler)
             signal.alarm(30)
             try:
-                cprint('You don\'t need to respond if not applicable.  The program will automatically resume in 30 seconds.', style='warning')
+                cprint(
+                    'You don\'t need to respond if not applicable.  The program will automatically resume in 30 seconds.',
+                    style='warning')
                 ans = input('Have you changed your IP address? (y/n) ')
                 if ans.lower() != 'y':
                     signal.alarm(0)
-                    cprint('You need to wait 10 minutes between new accounts...',
-                           style='warning')
+                    cprint(
+                        'You need to wait 10 minutes between new accounts...',
+                        style='warning')
                     cprint(
                         'DO NOT close this.  The program will continue when the '
                         'cooldown period has passed.',
@@ -168,7 +179,7 @@ def main():
                     signal.alarm(0)
             except Exception:
                 for _ in tqdm(range(time_left - 25)):
-                    time.sleep(1)  
+                    time.sleep(1)
     else:
         data = encrypted_json(data_path=fpath)
 
@@ -220,31 +231,32 @@ def main():
                 pass
     time.sleep(5)
 
-    time.sleep(60)
+    time.sleep(10)
     verified = verify_account(email, driver)
     try:
         time.sleep(3)
         driver.find_element(By.CLASS_NAME, 'verify-button').click()
     except:
         pass
+    elements.update({'created_on': timestamp})
+    elements = {k.replace('reg', '').lower(): v for k, v in elements.items()}
+
+    cprint('Checking account info...', style='info')
+    account_not_exists, verified = userinfo(username)
+    if not account_not_exists:
+        cprint('Passed!', style='OK')
+        elements.update({'shadowbanned': False})
+    else:
+        cprint(
+            'Something went wrong! The account did [b]not[/b] pass the '
+            'check!',
+            style='critical')
+        raise SystemExit(1)
     if verified:
         elements.update({'verified': True})
         cprint('Account verified!', style='OK')
     else:
         elements.update({'verified': False})
-    elements.update({'created_on': timestamp})
-    elements = {k.replace('reg', '').lower(): v for k, v in elements.items()}
-
-    cprint('Checking account info...', style='info')
-    account_not_exists = userinfo(username)
-    if not account_not_exists:
-        cprint('Passed!', style='OK')
-        elements.update({'shadowbanned': False})
-    else:
-        cprint('Something went wrong! The account did [b]not[/b] pass the '
-               'check!',
-               style='critical')
-        raise SystemExit(1)
 
     elements_ = {'index': data[-1]['index'] + 1}
     elements_.update(elements)
@@ -285,7 +297,7 @@ if __name__ == '__main__':
                 driver_path = f.readlines()[0]
         else:
             ans_path = input('Cannot find chromedriver!  '
-                'Enter your chromedriver path manually: ')
+                             'Enter your chromedriver path manually: ')
             with open(f'{parent}/.chrome_driver_path', 'w') as f:
                 f.write(ans_path + '\n')
     try:

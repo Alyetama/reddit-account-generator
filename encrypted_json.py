@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 from cryptography.fernet import Fernet
 import keyring
@@ -31,4 +32,4 @@ def encrypted_json(data_path, print_data=False):
 
 
 if __name__ == '__main__':
-    encrypted_json(data_path='reddit_accounts.json', print_data=True)
+    encrypted_json(data_path=f'{Path(__file__).parent}/reddit_accounts.json', print_data=True)
