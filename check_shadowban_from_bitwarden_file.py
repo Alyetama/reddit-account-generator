@@ -34,7 +34,7 @@ def main(bw_export_file, verbose=False):
     with open(bw_export_file) as j:
         d = json.load(j)
 
-    reddit_accts = [x for x in d['items'] if 'reddit' in x['name']]
+    reddit_accts = [x for x in d['items'] if x['folderId'] == 'c382d0e5-1c44-4463-bc40-ae11008a34aa']
     usernames = [x['login']['username'] for x in reddit_accts]
 
     for user in usernames:
@@ -42,5 +42,6 @@ def main(bw_export_file, verbose=False):
             logger.info(f'Shadowbanned/deleted: {user}')
 
 
-if __name__ == '__main__':
-    main('<file>')
+# if __name__ == '__main__':
+#     file = # bitwarden file (.json)
+#     main(file)

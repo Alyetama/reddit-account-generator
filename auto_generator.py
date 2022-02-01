@@ -3,6 +3,7 @@
 
 import json
 import os
+import imaplib
 import random
 import re
 import secrets
@@ -35,6 +36,7 @@ import reddit_settings
 from check_shadowban import userinfo
 from encrypted_json import encrypted_json
 from helpers import console, cprint
+from vpn_driver import vpn_driver
 
 
 def return_time():
@@ -89,6 +91,7 @@ def signup_info(email_address):
 
 def verify_account(addr, driver):
     mail_p = keyring.get_password('gmail', 'reddit')
+    mail_p = os.environ['EMAIL_PASS']
     if not mail_p:
         cprint('Did not find a password for your email in your keyring...',
                style='critical')
@@ -123,14 +126,17 @@ def verify_account(addr, driver):
 
 def main():
     console.rule('Starting...', style='OK')
-    service = Service(driver_path)
     options = webdriver.ChromeOptions()
-    if len(sys.argv) > 1:
-        if sys.argv[1] == '--disable-headless':
-            pass
-    else:
+    args_ = ['--disable-headless', '--solve']
+    if not any([True for x in args_ if x in sys.argv]):
         options.add_argument('headless')
-    driver = webdriver.Chrome(options=options, service=service)
+    if '--vpn' in sys.argv:
+        del options
+        driver = vpn_driver(headless=False)
+    else:
+        service = Service(driver_path)
+        driver = webdriver.Chrome(options=options, service=service)
+    driver.set_page_load_timeout(30)
     driver.get('https://www.reddit.com/account/register/')
     dotenv.load_dotenv(f'{Path(__file__).parent}/.env')
     email_account = os.getenv('EMAIL')
@@ -163,20 +169,21 @@ def main():
                 cprint(
                     'You don\'t need to respond if not applicable.  The program will automatically resume in 30 seconds.',
                     style='warning')
-                ans = input('Have you changed your IP address? (y/n) ')
-                if ans.lower() != 'y':
-                    signal.alarm(0)
-                    cprint(
-                        'You need to wait 10 minutes between new accounts...',
-                        style='warning')
-                    cprint(
-                        'DO NOT close this.  The program will continue when the '
-                        'cooldown period has passed.',
-                        style='critical')
-                    for _ in tqdm(range(time_left + 5)):
-                        time.sleep(1)
-                else:
-                    signal.alarm(0)
+                if '--solve' not in sys.argv:
+                    ans = input('Have you changed your IP address? (y/n) ')
+                    if ans.lower() != 'y':
+                        signal.alarm(0)
+                        cprint(
+                            'You need to wait 10 minutes between new accounts...',
+                            style='warning')
+                        cprint(
+                            'DO NOT close this.  The program will continue when the '
+                            'cooldown period has passed.',
+                            style='critical')
+                        for _ in tqdm(range(time_left + 5)):
+                            time.sleep(1)
+                    else:
+                        signal.alarm(0)
             except Exception:
                 for _ in tqdm(range(time_left - 25)):
                     time.sleep(1)
@@ -185,59 +192,73 @@ def main():
 
     timestamp, _ = return_time()
 
-    API_KEY = keyring.get_password('2captcha', 'API_KEY')
-    if not API_KEY:
-        cprint('Did not find an API key for 2Captcha in your keyring...',
-               style='critical')
-        api_key = input('2Captch API Key: ')
-        keyring.set_password('2captcha', 'API_KEY', api_key)
-    solver = TwoCaptcha(API_KEY)
-    cprint('Solving captcha...', style='info')
-    result = solver.recaptcha(
-        sitekey='6LeTnxkTAAAAAN9QEuDZRpn90WwKk_R1TRW_g-JC',
-        url='https://www.reddit.com/account/register/')
-    cprint('Solved!', style='info')
-    driver.execute_script(
-        '''var element=document.getElementById("g-recaptcha-response");
-        element.style.display="";''')
-    driver.execute_script(
-        """
-      document.getElementById("g-recaptcha-response").innerHTML = arguments[0]
-    """, result['code'])
-    driver.execute_script(
-        '''var element=document.getElementById("g-recaptcha-response");
-        element.style.display="none";''')
+    if '--solve' not in sys.argv:
+        API_KEY = keyring.get_password('2captcha', 'API_KEY')
+        if not API_KEY:
+            cprint('Did not find an API key for 2Captcha in your keyring...',
+                   style='critical')
+            api_key = input('2Captch API Key: ')
+            keyring.set_password('2captcha', 'API_KEY', api_key)
+        solver = TwoCaptcha(API_KEY)
+        cprint('Solving captcha...', style='info')
+        result = solver.recaptcha(
+            sitekey='6LeTnxkTAAAAAN9QEuDZRpn90WwKk_R1TRW_g-JC',
+            url='https://www.reddit.com/account/register/')
+        cprint('Solved!', style='info')
+        driver.execute_script(
+            '''var element=document.getElementById("g-recaptcha-response");
+            element.style.display="";''')
+        driver.execute_script(
+            """
+          document.getElementById("g-recaptcha-response").innerHTML = arguments[0]
+        """, result['code'])
+        driver.execute_script(
+            '''var element=document.getElementById("g-recaptcha-response");
+            element.style.display="none";''')
+    else:
+        input('HIT ENTER TO CONTINUE...')
 
     signup_button = WebDriverWait(driver, 20).until(
         ec.presence_of_element_located((By.CLASS_NAME, 'SignupButton')))
-    signup_button.click()
+    try:
+        signup_button.click()
 
-    es = driver.find_element(By.CLASS_NAME, 'AnimatedForm__bottomNav')
-    es = es.find_elements(By.TAG_NAME, 'span')
-    for e in es:
-        if e.get_attribute('class') == 'AnimatedForm__submitStatusMessage':
-            try:
-                signup_button.click()
-            except ElementNotInteractableException:
-                break
-            time.sleep(3)
-            try:
-                cooldown = int(re.findall('[0-9]+', e.text)[0])
-                if 'minutes' in e.text:
-                    cooldown = cooldown * 60
-                for _ in tqdm(range(cooldown + 10)):
-                    time.sleep(1)
-            except IndexError:
-                pass
-    time.sleep(5)
+        es = driver.find_element(By.CLASS_NAME, 'AnimatedForm__bottomNav')
+        es = es.find_elements(By.TAG_NAME, 'span')
+    except Exception:
+        pass
+    try:
+        for e in es:
+            if e.get_attribute('class') == 'AnimatedForm__submitStatusMessage':
+                try:
+                    signup_button.click()
+                except ElementNotInteractableException:
+                    break
+                time.sleep(3)
+                try:
+                    cooldown = int(re.findall('[0-9]+', e.text)[0])
+                    if 'minutes' in e.text:
+                        cooldown = cooldown * 60
+                    for _ in tqdm(range(cooldown + 10)):
+                        time.sleep(1)
+                except IndexError:
+                    pass
+        time.sleep(5)
+    except Exception:
+        pass
+    
 
     time.sleep(10)
-    verified = verify_account(email, driver)
     try:
-        time.sleep(3)
-        driver.find_element(By.CLASS_NAME, 'verify-button').click()
-    except:
-        pass
+        verified = verify_account(email, driver)
+        try:
+            time.sleep(3)
+            driver.find_element(By.CLASS_NAME, 'verify-button').click()
+        except:
+            pass
+    except Exception as e:
+        print(e)
+        cprint('Could not verify your email. Verify it manually...', style='critical')
     elements.update({'created_on': timestamp})
     elements = {k.replace('reg', '').lower(): v for k, v in elements.items()}
 
@@ -277,8 +298,14 @@ def main():
             j.seek(0, 0)
             j.write(encrypted)
 
-    reddit_settings.disable_tracking(driver)
-    reddit_settings.change_settings(driver)
+    try:
+        driver.set_page_load_timeout(10)
+        driver.get('https://old.reddit.com/personalization')
+        reddit_settings.disable_tracking(driver)
+        reddit_settings.change_settings(driver)
+    except Exception:
+        cprint('Could not change default settings.', style='critical')
+        pass
 
     driver.quit()
     console.rule('Done!', style='OK')
