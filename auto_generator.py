@@ -114,7 +114,7 @@ def check_driver_path():
     return driver_path
 
 
-def cooldown(time_left):
+def cooldown_func(time_left):
     signal.signal(signal.SIGALRM, alarm_handler)
     signal.alarm(30)
     try:
@@ -193,7 +193,7 @@ def main():
     if (now - then) < 600:
         time_left = 600 - int(now - then)
         if not '--changed-ip' in sys.argv:
-            cooldown(time_left)
+            cooldown_func(time_left)
 
     timestamp = datetime.now()
 
