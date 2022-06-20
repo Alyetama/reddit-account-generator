@@ -3,6 +3,7 @@
 
 import email
 import imaplib
+import json
 import os
 import random
 import re
@@ -124,9 +125,15 @@ def _cooldown_func(time_left, solve_manually=False):
 def generate(disable_headless=False,
              solve_manually=False,
              ip_rotated=False,
+             use_json=False,
              debug=False,
              experimental_use_vpn=False):
     signal.signal(signal.SIGINT, keyboard_interrupt_handler)
+
+    local_db = f'{Path.home()}/.reddit_accounts.json'
+    if use_json and not Path(local_db).exists():
+        with open(local_db, 'w') as j:
+            json.dump([], j)
 
     console = Console(theme=custom_theme())
 
@@ -136,8 +143,12 @@ def generate(disable_headless=False,
     if not driver_path:
         sys.exit(1)
 
-    col = mongodb_client()['reddit']
-    data = list(col.find({}))
+    if use_json:
+        with open(local_db) as j:
+            data = json.load(j)
+    else:
+        col = mongodb_client()['reddit']
+        data = list(col.find({}))
 
     console.rule('Starting...', style='OK')
     options = webdriver.ChromeOptions()
@@ -174,8 +185,12 @@ def generate(disable_headless=False,
     time.sleep(3)
 
     now = time.time()
-    max_ts = list(col.find({}).sort([('created_on', pymongo.ASCENDING)
-                                     ]))[-1]['created_on']
+    if use_json:
+        max_ts = datetime.strptime(data[-1]['created_on'],
+                                   '%Y-%m-%d %H:%M:%S.%f')
+    else:
+        max_ts = list(col.find({}).sort([('created_on', pymongo.ASCENDING)
+                                         ]))[-1]['created_on']
     then = time.mktime(max_ts.timetuple())
 
     if (now - then) < 600:
@@ -275,7 +290,15 @@ def generate(disable_headless=False,
     elements_ = {'_id': max_id + 1}
     elements_.update(elements)
 
-    col.insert_one(elements_)
+    if use_json:
+        backup_copy = f'{Path(local_db).parent}/{Path(local_db).stem}_copy.json'
+        shutil.copy2(local_db, backup_copy)
+        with open(local_db, 'w') as j:
+            data.append(elements_)
+            json.dump(data, j, indent=4)
+        os.remove(backup_copy)
+    else:
+        col.insert_one(elements_)
 
     try:
         driver.set_page_load_timeout(10)
