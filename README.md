@@ -1,4 +1,4 @@
-# Reddit Accounts Generator
+# Reddit Account Generator
 
 
 ## Requirements
@@ -9,7 +9,7 @@
 
 ### Step 1: Clone this repository
 ```sh
-git clone https://github.com/Alyetama/reddit_accounts_generator.git
+git clone https://github.com/Alyetama/reddit-account-generator.git
 cd reddit_accounts_generator
 ```
 
