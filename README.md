@@ -3,44 +3,54 @@
 
 ## Requirements
 - [Google Chrome](https://www.google.com/chrome/)
+- [MongoDB](https://www.mongodb.com/) (get a free database [here](https://www.mongodb.com/cloud/atlas/register))
 
 ## Getting started
 ### Step 1: Clone this repository
-```bash
-$ git clone https://github.com/Alyetama/reddit_accounts_generator.git
-$ cd reddit_accounts_generator
-$ pip install -r requirements.txt
+```sh
+git clone https://github.com/Alyetama/reddit_accounts_generator.git
+cd reddit_accounts_generator
 ```
 
-### Step 2: Email verification
-To verify your emails on the accounts, you have two options:
-1. Use a disposable email service (cons: your IP might be blocked if you're using a VPN).
-2. Use one Gmail account, which will allows you to create unlimited aliases.
-
-#### Option 1: Create an API key to use disposable emails
-- You only need to do this step once!
-1. Sign up on https://mailsac.com/register
-2. Go to https://mailsac.com/api-keys
-3. Click `Generate New API Secret` and copy the `Secret` string
-5. Create an `.env` file in the respoitory, replacing `<MAILSEC_API_KEY>` with what you just copied:
-```bash
-$ echo "SECRET=<MAILSEC_API_KEY>" > .env
+### Step 2: Build the package
+```sh
+pip install poetry
+poetry build
+pip install dist/*.whl
 ```
 
-#### Option 2: Use a Gmail account*
-1. Allow "less ssecure apps" by following the instructions [here](https://support.google.com/accounts/answer/6010255?hl=en).
-2. Create an `.env` file in the respoitory, replacing `<YOUR_EMAIL>` with your email address:
-```bash
-$ echo "EMAIL=<YOUR_EMAIL>" > .env
+### Step 3: Edit the content of `.env`
+```sh
+mv .env.example .env
+nano .env  # or any other editor
 ```
 
-### Step 3: Run the script
-```bash
-$ python create_reddit_account.py
+## Usage
+
+```
+$ reddit-gen -h         
+usage: reddit-gen [-h] [-d] [-s] [-i] [-D]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -d, --disable-headless
+                        Disable headless mode
+  -s, --solve-manually  Solve the captcha manually
+  -i, --ip-rotated      The public IP address was changed by the user since the last created account (to bypass the cooldown)
+  -D, --debug           Debug mode (logs all exceptions)
 ```
 
-### Additional notes: Your data
-Your accounts data file is encryoted by default, and the key is stored in your system's keyring service (e.g., Keychain, Windows Credential Locker, etc.).  You can unencrypt the data to view it by running:
-```python
-$ python encrypted_json.py
+## Example
+
+```
+$ reddit-gen   
+───────────────────────────────── Starting... ─────────────────────────────────
+2022-06-20 17:22:42.739 | INFO     | reddit_gen.generator:_signup_info:65 - Your account's email address: john_87493@example.com
+2022-06-20 17:22:42.739 | INFO     | reddit_gen.generator:_signup_info:67 - Username: john_87493
+2022-06-20 17:22:45.976 | DEBUG    | reddit_gen.generator:generate:196 - Solving captcha...
+2022-06-20 17:24:12.579 | DEBUG    | reddit_gen.generator:generate:200 - Solved!
+2022-06-20 17:24:38.841 | DEBUG    | reddit_gen.generator:generate:263 - Checking account info...
+2022-06-20 17:24:39.069 | DEBUG    | reddit_gen.generator:generate:266 - Passed!
+2022-06-20 17:24:39.069 | INFO     | reddit_gen.generato──r:generate:274 - Account verified!
+───────────────────────────────────── Done! ───────────────────────────────────
 ```

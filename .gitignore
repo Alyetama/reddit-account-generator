@@ -1,14 +1,3 @@
-# User-defined
-.DS_Store
-.ini
-Icon?
-reddit_accounts.json
-/.idea/
-/.wdm/
-debug.ipynb
-default_settings.py
-aged_accounts.py
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -147,3 +136,16 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+
+# Other
+.DS_Store
+.ini
+Icon?
+.idea/
+.wdm/
+debug.ipynb
+archived/
+misc/
+*.crx
+poetry.lock
+build.sh

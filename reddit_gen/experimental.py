@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# coding: utf-8
+
 import time
 
 import requests
@@ -6,8 +9,8 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 
 
-def vpn_driver(headless=False):
-    service = Service('/opt/homebrew/bin/chromedriver')
+def vpn_driver(driver_path, headless=False):
+    service = Service(driver_path)
     options = webdriver.ChromeOptions()
     if headless:
         options.add_argument('headless')

@@ -1,0 +1,30 @@
+[tool.poetry]
+name = "reddit-gen"
+version = "0.1.0"
+description = "Generate Reddit Accounts Automatically"
+authors = ["Mohammad Alyetama <malyetama@pm.me>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.7"
+rich = ">=10.6.0"
+selenium = ">=3.141.0"
+tqdm = ">=4.56.2"
+factory-boy = ">=3.2.0"
+python-dotenv = ">=0.17.1"
+requests = ">=2.26.0"
+beautifulsoup4 = ">=4.10.0"
+2captcha-python = ">=1.1.0"
+loguru = ">=0.6.0"
+pymongo = {version = ">=4.1.1", extras = ["srv"]}
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+reddit-gen = "reddit_gen:cli.main"
+reddit_gen = "reddit_gen:cli.main"
