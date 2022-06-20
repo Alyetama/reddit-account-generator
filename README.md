@@ -3,7 +3,7 @@
 
 ## Requirements
 - [Google Chrome](https://www.google.com/chrome/)
-- Optional, but recommended: [MongoDB](https://www.mongodb.com/) (get a free database [here](https://www.mongodb.com/cloud/atlas/register)) 
+- *Optional, but recommended:* [MongoDB](https://www.mongodb.com/) (get a free database [here](https://www.mongodb.com/cloud/atlas/register)) 
 
 ## Getting started
 
