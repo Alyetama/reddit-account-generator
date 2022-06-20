@@ -34,7 +34,7 @@ def _opts() -> argparse.Namespace:
 def main():
     load_dotenv()
     args = _opts()
-    generate(disabled_headless=args.disabled_headless,
+    generate(disable_headless=args.disable_headless,
              solve_manually=args.solve_manually,
              ip_rotated=args.ip_rotated,
              debug=args.debug,

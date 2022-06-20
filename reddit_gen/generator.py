@@ -121,7 +121,7 @@ def _cooldown_func(time_left, solve_manually=False):
             time.sleep(1)
 
 
-def generate(disabled_headless=False,
+def generate(disable_headless=False,
              solve_manually=False,
              ip_rotated=False,
              debug=False,
@@ -142,7 +142,7 @@ def generate(disabled_headless=False,
     console.rule('Starting...', style='OK')
     options = webdriver.ChromeOptions()
 
-    if not disabled_headless and not solve_manually:
+    if not disable_headless and not solve_manually:
         options.add_argument('headless')
 
     if experimental_use_vpn:
