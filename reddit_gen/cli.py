@@ -11,6 +11,7 @@ from loguru import logger
 
 from reddit_gen.handlers import keyboard_interrupt_handler
 from reddit_gen.generator import check_driver_path, generate, load_driver
+from reddit_gen.utils import update_account_metadata
 
 
 def _opts() -> argparse.Namespace:
@@ -49,6 +50,10 @@ def _opts() -> argparse.Namespace:
                         '--debug',
                         help='Debug mode',
                         action='store_true')
+    parser.add_argument('-U',
+                        '--update-database',
+                        help='Update accounts metadata (MongoDB-only)',
+                        action='store_true')
     parser.add_argument('--experimental-use-vpn', action='store_true')
     return parser.parse_args()
 
@@ -65,6 +70,10 @@ def main():
             logger.error(
                 'Could not find a local database! Run the program at '
                 'least once with the flag `--use-json` to generate it.')
+        sys.exit(0)
+
+    if args.update_database:
+        update_account_metadata()
         sys.exit(0)
 
     if args.experimental_use_vpn and not args.disable_headless:

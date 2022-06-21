@@ -8,6 +8,7 @@ from datetime import datetime
 
 import pymongo
 from rich.theme import Theme
+from tqdm import tqdm
 
 
 def mongodb_client():
@@ -38,14 +39,14 @@ def check_shadowban(username):
             response = r.status
             if response == 404:
                 notfound = True
-                return notfound, None
+                return notfound, False
             else:
                 notfound = False
                 data = json.loads(r.read().decode("utf-8"))
                 try:
                     verified = data['data']['has_verified_email']
                 except KeyError:
-                    return notfound, None
+                    return notfound, False
                 return notfound, verified
 
 
@@ -58,11 +59,19 @@ def _check_account_age(account):
         return False
 
 
-def update_account_aging_status():
+def update_account_metadata():
     db = mongodb_client()
     col = db['reddit']
     data = list(col.find({}).sort([('created_on', pymongo.ASCENDING)]))
 
-    for account in data:
+    for account in tqdm(data):
         is_aged = _check_account_age(account)
-        col.update_one({'_id': account['_id']}, {'$set': {'is_aged': is_aged}})
+        notfound, verified = check_shadowban(account['username'])
+
+        col.update_one({'_id': account['_id']}, {
+            '$set': {
+                'is_aged': is_aged,
+                'shadowbanned': notfound,
+                'verified': verified
+            }
+        })
