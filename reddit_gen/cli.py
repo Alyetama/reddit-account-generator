@@ -6,8 +6,9 @@ import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
+from loguru import logger
 
-from reddit_gen.generator import generate
+from reddit_gen.generator import check_driver_path, generate, load_driver
 
 
 def _opts() -> argparse.Namespace:
@@ -41,6 +42,7 @@ def _opts() -> argparse.Namespace:
                         '--debug',
                         help='Debug mode',
                         action='store_true')
+    parser.add_argument('--experimental-use-vpn', action='store_true')
     return parser.parse_args()
 
 
@@ -52,16 +54,32 @@ def main():
         if Path(local_db).exists():
             print(local_db)
         else:
-            print('Could not find a local database! Run the program at least '
-                  'once with the flag `--use-json` to generate it.')
+            logger.error(
+                'Could not find a local database! Run the program at '
+                'least once with the flag `--use-json` to generate it.')
         sys.exit(0)
 
-    generate(disable_headless=args.disable_headless,
-             solve_manually=args.solve_manually,
-             ip_rotated=args.ip_rotated,
-             use_json=args.use_json,
-             debug=args.debug,
-             experimental_use_vpn=False)
+    if args.experimental_use_vpn and not args.disable_headless:
+        logger.error('Cannot use `--experimental-use-vpn` in headless mode!')
+        sys.exit(1)
+
+    driver_path = check_driver_path()
+    driver = load_driver(driver_path,
+                         disable_headless=args.disable_headless,
+                         experimental_use_vpn=args.experimental_use_vpn)
+
+    try:
+        generate(driver=driver,
+                 disable_headless=args.disable_headless,
+                 solve_manually=args.solve_manually,
+                 ip_rotated=args.ip_rotated,
+                 use_json=args.use_json,
+                 debug=args.debug,
+                 experimental_use_vpn=args.experimental_use_vpn)
+    except Exception as e:
+        logger.exception(e)
+        driver.quit()
+        logger.debug('Terminated the driver successfully.')
 
 
 if __name__ == '__main__':

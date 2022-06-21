@@ -14,6 +14,7 @@ import string
 import sys
 import time
 from datetime import datetime
+from pathlib import Path
 
 import factory
 import pymongo
@@ -104,7 +105,7 @@ def _cooldown_func(time_left, solve_manually=False):
     signal.alarm(30)
     try:
         logger.warning('You don\'t need to respond if not applicable. '
-                       'The program will automatically resume in 30 seconds.')
+                       'The program will automatically fallback to cooldown.')
         if not solve_manually:
             ans = input('Have you changed your IP address? (y/n) ')
             if ans.lower() != 'y':
@@ -122,7 +123,26 @@ def _cooldown_func(time_left, solve_manually=False):
             time.sleep(1)
 
 
-def generate(disable_headless=False,
+def load_driver(driver_path,
+                disable_headless=True,
+                experimental_use_vpn=False):
+    options = webdriver.ChromeOptions()
+    if experimental_use_vpn:
+        del options
+        try:
+            driver = vpn_driver(driver_path, disable_headless=disable_headless)
+        except Exception as e:
+            logger.exception(e)
+            driver.quit()
+            sys.exit(1)
+    else:
+        service = Service(driver_path)
+        driver = webdriver.Chrome(options=options, service=service)
+    return driver
+
+
+def generate(driver,
+             disable_headless=False,
              solve_manually=False,
              ip_rotated=False,
              use_json=False,
@@ -151,17 +171,10 @@ def generate(disable_headless=False,
         data = list(col.find({}))
 
     console.rule('Starting...', style='OK')
-    options = webdriver.ChromeOptions()
-
+    headless = False
     if not disable_headless and not solve_manually:
         options.add_argument('headless')
-
-    if experimental_use_vpn:
-        del options
-        driver = vpn_driver(driver_path, headless=False)
-    else:
-        service = Service(driver_path)
-        driver = webdriver.Chrome(options=options, service=service)
+        headless = True
 
     driver.set_page_load_timeout(30)
     driver.get('https://www.reddit.com/account/register/')
@@ -241,7 +254,7 @@ def generate(disable_headless=False,
                     break
                 time.sleep(3)
                 try:
-                    cooldown = int(re.findall('\d+', e.text)[0])
+                    cooldown = int(re.findall(r'\d+', e.text)[0])
                     if 'minutes' in e.text:
                         cooldown *= 60
                     for _ in tqdm(range(cooldown + 10)):
