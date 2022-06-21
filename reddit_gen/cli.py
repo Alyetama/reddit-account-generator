@@ -43,7 +43,8 @@ def _opts() -> argparse.Namespace:
     parser.add_argument('-n',
                         '--create-n-accounts',
                         help='Number of accounts to create (default: 1)',
-                        type=int)
+                        type=int,
+                        default=1)
     parser.add_argument('-D',
                         '--debug',
                         help='Debug mode',
