@@ -125,8 +125,12 @@ def _cooldown_func(time_left, solve_manually=False):
 
 def load_driver(driver_path,
                 disable_headless=True,
-                experimental_use_vpn=False):
+                experimental_use_vpn=False,
+                solve_manually=False):
     options = webdriver.ChromeOptions()
+    if not disable_headless and not solve_manually:
+        options.add_argument('headless')
+
     if experimental_use_vpn:
         del options
         try:
@@ -171,10 +175,6 @@ def generate(driver,
         data = list(col.find({}))
 
     console.rule('Starting...', style='OK')
-    headless = False
-    if not disable_headless and not solve_manually:
-        options.add_argument('headless')
-        headless = True
 
     driver.set_page_load_timeout(30)
     driver.get('https://www.reddit.com/account/register/')

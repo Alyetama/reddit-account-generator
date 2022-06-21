@@ -66,7 +66,8 @@ def main():
     driver_path = check_driver_path()
     driver = load_driver(driver_path,
                          disable_headless=args.disable_headless,
-                         experimental_use_vpn=args.experimental_use_vpn)
+                         experimental_use_vpn=args.experimental_use_vpn,
+                         solve_manually=args.solve_manually)
 
     try:
         generate(driver=driver,
