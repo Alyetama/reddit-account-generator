@@ -2,12 +2,14 @@
 # coding: utf-8
 
 import argparse
+import signal
 import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
 from loguru import logger
 
+from reddit_gen.handlers import keyboard_interrupt_handler
 from reddit_gen.generator import check_driver_path, generate, load_driver
 
 
@@ -38,6 +40,10 @@ def _opts() -> argparse.Namespace:
         '--show-local-database-path',
         help='Prints the path to the local database, if exists',
         action='store_true')
+    parser.add_argument('-n',
+                        '--create-n-accounts',
+                        help='Number of accounts to create (default: 1)',
+                        type=int)
     parser.add_argument('-D',
                         '--debug',
                         help='Debug mode',
@@ -48,6 +54,7 @@ def _opts() -> argparse.Namespace:
 
 def main():
     load_dotenv()
+    signal.signal(signal.SIGINT, keyboard_interrupt_handler)
     args = _opts()
     if args.show_local_database_path:
         local_db = f'{Path.home()}/.reddit_accounts.json'
@@ -69,18 +76,19 @@ def main():
                          experimental_use_vpn=args.experimental_use_vpn,
                          solve_manually=args.solve_manually)
 
-    try:
-        generate(driver=driver,
-                 disable_headless=args.disable_headless,
-                 solve_manually=args.solve_manually,
-                 ip_rotated=args.ip_rotated,
-                 use_json=args.use_json,
-                 debug=args.debug,
-                 experimental_use_vpn=args.experimental_use_vpn)
-    except Exception as e:
-        logger.exception(e)
-        driver.quit()
-        logger.debug('Terminated the driver successfully.')
+    for _ in range(args.create_n_accounts):
+        try:
+            generate(driver=driver,
+                     disable_headless=args.disable_headless,
+                     solve_manually=args.solve_manually,
+                     ip_rotated=args.ip_rotated,
+                     use_json=args.use_json,
+                     debug=args.debug,
+                     experimental_use_vpn=args.experimental_use_vpn)
+        except Exception as e:
+            logger.exception(e)
+            driver.quit()
+            logger.debug('Terminated the driver successfully.')
 
 
 if __name__ == '__main__':
