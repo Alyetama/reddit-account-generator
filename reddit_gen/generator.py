@@ -291,7 +291,9 @@ def generate(driver,
             time.sleep(3)
             driver.find_element(By.CLASS_NAME, 'verify-button').click()
         except Exception as e:
-            logger.warning('Could not click on the verify button!')
+            logger.warning(
+                'Could not click on the verify button! '
+                'Trying a different method...')
             if debug:
                 logger.exception(e)
     except Exception as e:
