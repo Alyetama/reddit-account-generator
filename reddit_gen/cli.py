@@ -2,12 +2,15 @@
 # coding: utf-8
 
 import argparse
+import os
 import signal
 import sys
 from pathlib import Path
+from platform import platform
 
 from dotenv import load_dotenv
 from loguru import logger
+from selenium.common.exceptions import WebDriverException
 
 from reddit_gen.handlers import keyboard_interrupt_handler
 from reddit_gen.generator import check_driver_path, generate, load_driver
@@ -46,6 +49,10 @@ def _opts() -> argparse.Namespace:
                         help='Number of accounts to create (default: 1)',
                         type=int,
                         default=1)
+    parser.add_argument('-e',
+                        '--env-file',
+                        help='Path to the .env file. Defaults to .env in the '
+                        'current directory')
     parser.add_argument('-D',
                         '--debug',
                         help='Debug mode',
@@ -59,9 +66,13 @@ def _opts() -> argparse.Namespace:
 
 
 def main():
-    load_dotenv()
     signal.signal(signal.SIGINT, keyboard_interrupt_handler)
     args = _opts()
+
+    if not args.env_file:
+        args.env_file = f'{Path.cwd()}/.env'
+    load_dotenv(args.env_file)
+
     if args.show_local_database_path:
         local_db = f'{Path.home()}/.reddit_accounts.json'
         if Path(local_db).exists():
@@ -81,10 +92,35 @@ def main():
         sys.exit(1)
 
     driver_path = check_driver_path()
-    driver = load_driver(driver_path,
-                         disable_headless=args.disable_headless,
-                         experimental_use_vpn=args.experimental_use_vpn,
-                         solve_manually=args.solve_manually)
+    try:
+        driver = load_driver(driver_path,
+                             disable_headless=args.disable_headless,
+                             experimental_use_vpn=args.experimental_use_vpn,
+                             solve_manually=args.solve_manually)
+    except WebDriverException:
+        if 'macOS' in platform() and not os.getenv('CHROME_BINARY_LOCATION'):
+            if Path('/Applications/Chrome.app').exists():
+                os.environ[
+                    'CHROME_BINARY_LOCATION'] = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+            elif Path('/Applications/Chromium.app').exists():
+                os.environ[
+                    'CHROME_BINARY_LOCATION'] = '/Applications/Chromium.app/Contents/MacOS/Chromium'
+
+        if not os.getenv('CHROME_BINARY_LOCATION'):
+            logger.error(
+                'Could not find a chrome browser binary! Pass it manually or '
+                'set the environment variable `CHROME_BINARY_LOCATION`')
+            os.environ['CHROME_BINARY_LOCATION'] = input(
+                'Chrome browser binary: ')
+            if not Path(os.environ['CHROME_BINARY_LOCATION']).exists():
+                raise FileNotFoundError(f'Could not find {chrome_binary}!')
+
+        driver = load_driver(
+            driver_path,
+            disable_headless=args.disable_headless,
+            experimental_use_vpn=args.experimental_use_vpn,
+            solve_manually=args.solve_manually,
+            binary_location=os.environ['CHROME_BINARY_LOCATION'])
 
     for _ in range(args.create_n_accounts):
         try:
@@ -94,7 +130,8 @@ def main():
                      ip_rotated=args.ip_rotated,
                      use_json=args.use_json,
                      debug=args.debug,
-                     experimental_use_vpn=args.experimental_use_vpn)
+                     experimental_use_vpn=args.experimental_use_vpn,
+                     env_file=args.env_file)
         except Exception as e:
             logger.exception(e)
             driver.quit()
@@ -102,4 +139,5 @@ def main():
 
 
 if __name__ == '__main__':
+    load_dotenv()
     main()

@@ -19,6 +19,7 @@ from pathlib import Path
 import factory
 import pymongo
 from bs4 import BeautifulSoup
+from dotenv import load_dotenv
 from loguru import logger
 from rich.console import Console
 from selenium import webdriver
@@ -60,7 +61,11 @@ def _gen_pass():
 
 def _signup_info():
     _username = _gen_username()
-    _email = f'{_username}@{os.environ["CATCH_ALL_DOMAIN"]}'
+    if os.getenv('CATCH_ALL_DOMAIN'):
+        _email = f'{_username}@{os.environ["CATCH_ALL_DOMAIN"]}'
+    else:
+        e_address = os.environ['EMAIL_ADDRESS'].split('@')
+        _email = f'{e_address[0]}+{_username}@{e_address[1]}'
     _passwd = _gen_pass()
     logger.opt(colors=True).info(
         f'Your account\'s email address: <u><y>{_email}</y></u>')
@@ -69,6 +74,8 @@ def _signup_info():
 
 
 def _get_verf_url():
+    if 'gmail' in os.environ['EMAIL_ADDRESS']:
+        os.environ['IMAP_SERVER'] = 'imap.gmail.com'
     mail = imaplib.IMAP4_SSL(os.environ['IMAP_SERVER'])
     mail.login(os.environ['EMAIL_ADDRESS'], os.environ['EMAIL_PASSWD'])
     mail.select('inbox')
@@ -126,8 +133,10 @@ def _cooldown_func(time_left, solve_manually=False):
 def load_driver(driver_path,
                 disable_headless=True,
                 experimental_use_vpn=False,
-                solve_manually=False):
+                solve_manually=False,
+                binary_location=None):
     options = webdriver.ChromeOptions()
+    options.binary_location = binary_location
     if not disable_headless and not solve_manually:
         options.add_argument('headless')
 
@@ -151,8 +160,16 @@ def generate(driver,
              ip_rotated=False,
              use_json=False,
              debug=False,
-             experimental_use_vpn=False):
+             experimental_use_vpn=False,
+             env_file=None):
     signal.signal(signal.SIGINT, keyboard_interrupt_handler)
+    load_dotenv(env_file)
+
+    if not os.getenv('MONGODB_CONNECTION_STRING') and not use_json:
+        logger.warning(
+            'The environment variable `MONGODB_CONNECTION_STRING` is not '
+            'set. Defaulting to a local JSON database.')
+        use_json = True
 
     local_db = f'{Path.home()}/.reddit_accounts.json'
     if use_json and not Path(local_db).exists():
