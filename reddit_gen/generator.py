@@ -13,7 +13,7 @@ import signal
 import string
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import factory
@@ -216,8 +216,11 @@ def generate(driver,
 
     now = time.time()
     if use_json:
-        max_ts = datetime.strptime(data[-1]['created_on'],
-                                   '%Y-%m-%d %H:%M:%S.%f')
+        if data:
+            max_ts = datetime.strptime(data[-1]['created_on'],
+                                       '%Y-%m-%d %H:%M:%S.%f')
+        else:
+            max_ts = datetime.today() - timedelta(days=1)
     else:
         max_ts = list(col.find({}).sort([('created_on', pymongo.ASCENDING)
                                          ]))[-1]['created_on']
@@ -291,9 +294,8 @@ def generate(driver,
             time.sleep(3)
             driver.find_element(By.CLASS_NAME, 'verify-button').click()
         except Exception as e:
-            logger.warning(
-                'Could not click on the verify button! '
-                'Trying a different method...')
+            logger.warning('Could not click on the verify button! '
+                           'Trying a different method...')
             if debug:
                 logger.exception(e)
     except Exception as e:
@@ -318,7 +320,11 @@ def generate(driver,
     else:
         elements.update({'verified': False})
 
-    max_id = max([x['_id'] for x in data])
+    if data:
+        max_id = max([x['_id'] for x in data])
+    else:
+        max_id = -1
+
     elements_ = {'_id': max_id + 1}
     elements_.update(elements)
 

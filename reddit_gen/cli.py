@@ -5,6 +5,7 @@ import argparse
 import os
 import signal
 import sys
+from getpass import getpass
 from pathlib import Path
 from platform import platform
 
@@ -49,10 +50,10 @@ def _opts() -> argparse.Namespace:
                         help='Number of accounts to create (default: 1)',
                         type=int,
                         default=1)
-    parser.add_argument('-e',
-                        '--env-file',
-                        help='Path to the .env file. Defaults to .env in the '
-                        'current directory')
+    parser.add_argument('-c',
+                        '--config-file',
+                        help='Path to the config file. Defaults to '
+                        f'{Path(Path.home() / ".redditgen.env")}')
     parser.add_argument('-D',
                         '--debug',
                         help='Debug mode',
@@ -61,17 +62,58 @@ def _opts() -> argparse.Namespace:
                         '--update-database',
                         help='Update accounts metadata (MongoDB-only)',
                         action='store_true')
-    parser.add_argument('--experimental-use-vpn', action='store_true')
+    parser.add_argument('--configure',
+                        action='store_true',
+                        help='Configure your environment')
+    parser.add_argument('--experimental-use-vpn',
+                        action='store_true',
+                        help='Experimental feature (unstable)')
     return parser.parse_args()
+
+
+def configure(rc_file):
+    cfg = ''
+    email_address = input('Email address (required):\n> ')
+    cfg += f'EMAIL_ADDRESS={email_address}\n'
+    email_passwd = getpass('Email password (required):\n> ')
+    cfg += f'EMAIL_PASSWD={email_passwd}\n'
+    if '@gmail' in email_address:
+        cfg += 'IMAP_SERVER=imap.gmail.com\n'
+    else:
+        imap_server = input(
+            'IMAP Server of your email provider (required):\n> ')
+        cfg += f'IMAP_SERVER={imap_server}\n'
+    two_captcha_key = input(
+        'TWO_CAPTCHA_KEY (optional; leave empty to skip):\n> ')
+    if two_captcha_key:
+        cfg += f'TWO_CAPTCHA_KEY={two_captcha_key}\n'
+        mongodb_connection_string = input(
+            'MONGODB_CONNECTION_STRING (optional; leave empty to skip):\n> ')
+    if mongodb_connection_string:
+        cfg += f'MONGODB_CONNECTION_STRING={mongodb_connection_string}\n'
+
+    with open(rc_file, 'w') as f:
+        f.write(cfg)
+    logger.info(f'Configuration file location: {rc_file}')
 
 
 def main():
     signal.signal(signal.SIGINT, keyboard_interrupt_handler)
     args = _opts()
+    rc_file = Path(Path.home() / '.redditgen.env')
 
-    if not args.env_file:
-        args.env_file = f'{Path.cwd()}/.env'
-    load_dotenv(args.env_file)
+    if args.configure:
+        configure(rc_file)
+        sys.exit(0)
+
+    if not args.config_file:
+        args.config_file = rc_file
+
+    if not rc_file.exists():
+        logger.warning('You have no configured your environment yet!')
+        configure(rc_file)
+
+    load_dotenv(rc_file)
 
     if args.show_local_database_path:
         local_db = f'{Path.home()}/.reddit_accounts.json'
@@ -131,7 +173,7 @@ def main():
                      use_json=args.use_json,
                      debug=args.debug,
                      experimental_use_vpn=args.experimental_use_vpn,
-                     env_file=args.env_file)
+                     env_file=args.config_file)
         except Exception as e:
             logger.exception(e)
             driver.quit()
