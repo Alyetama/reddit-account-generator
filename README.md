@@ -17,21 +17,22 @@ cd reddit_accounts_generator
 ```sh
 pip install poetry
 poetry build
-pip install dist/*.whl
+pip install .
 ```
 
 ### Step 3: Edit the content of `.env`
 ```sh
 mv .env.example .env
-nano .env  # or any other editor
+nano .env  # or any other text editor
 ```
 
 ## Usage
 
 ```
-usage: reddit-gen [-h] [-d] [-s] [-i] [-j] [-p] [-D]
+usage: reddit-gen [-h] [-d] [-s] [-i] [-j] [-p] [-n CREATE_N_ACCOUNTS]
+                  [-e ENV_FILE] [-D] [-U] [--experimental-use-vpn]
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
   -d, --disable-headless
                         Disable headless mode
@@ -43,7 +44,15 @@ optional arguments:
                         if not found
   -p, --show-local-database-path
                         Prints the path to the local database, if exists
+  -n CREATE_N_ACCOUNTS, --create-n-accounts CREATE_N_ACCOUNTS
+                        Number of accounts to create (default: 1)
+  -e ENV_FILE, --env-file ENV_FILE
+                        Path to the .env file. Defaults to .env in the current
+                        directory
   -D, --debug           Debug mode
+  -U, --update-database
+                        Update accounts metadata (MongoDB-only)
+  --experimental-use-vpn
 ```
 
 ## Example
