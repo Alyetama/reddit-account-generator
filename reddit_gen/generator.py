@@ -189,7 +189,7 @@ def generate(driver,
         with open(local_db) as j:
             data = json.load(j)
     else:
-        col = mongodb_client(os.environ['MONGODB_CONNECTION_STRING'])['reddit']
+        col = mongodb_client()['reddit']
         data = list(col.find({}))
 
     console.rule('Starting...', style='OK')

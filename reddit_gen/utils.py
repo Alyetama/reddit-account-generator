@@ -3,19 +3,22 @@
 
 import http.client
 import json
+import os
 import time
 from datetime import datetime
 
 import pymongo
+from loguru import logger
 from rich.theme import Theme
 from selenium import webdriver
+from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from tqdm import tqdm
 
 
-def mongodb_client(connection_string: str):
-    client = pymongo.MongoClient(connection_string)
+def mongodb_client():
+    client = pymongo.MongoClient(os.environ['MONGODB_CONNECTION_STRING'])
     db = client['reddit']
     return db
 
@@ -76,6 +79,7 @@ def is_banned_from_subreddit(subreddit: str, verbose: bool = False):
     for username, passwd in tqdm(accounts, desc='Subreddit ban check'):
         driver = webdriver.Chrome(options=options, service=service)
         driver.get('https://old.reddit.com')
+
         for e in driver.find_elements(By.TAG_NAME, 'input'):
             if e.get_attribute('name') == 'user':
                 time.sleep(0.5)
@@ -87,7 +91,15 @@ def is_banned_from_subreddit(subreddit: str, verbose: bool = False):
                 break
         time.sleep(1)
         driver.get(f'https:/old.reddit.com/r/{subreddit}/submit')
-        if 'forbidden' in driver.find_element(By.CLASS_NAME, 'content').text:
+        time.sleep(1)
+        try:
+            content = driver.find_element(By.CLASS_NAME, 'content').text
+        except NoSuchElementException:
+            logger.warning(
+                f'Failed to check whether {username} is banned from {subreddit}!'
+            )
+            continue
+        if 'forbidden' in content:
             subreddit_ban = True
             ban_print = f'\033[40m\033[31m{subreddit_ban}\033[39m\033[49m'
         else:
