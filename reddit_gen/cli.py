@@ -90,11 +90,11 @@ def configure(rc_file):
         imap_server = input(
             'IMAP Server of your email provider (required):\n> ')
         cfg += f'IMAP_SERVER={imap_server}\n'
-    two_captcha_key = input(
+    two_captcha_key = getpass(
         'TWO_CAPTCHA_KEY (optional; leave empty to skip):\n> ')
     if two_captcha_key:
         cfg += f'TWO_CAPTCHA_KEY={two_captcha_key}\n'
-        mongodb_connection_string = input(
+        mongodb_connection_string = getpass(
             'MONGODB_CONNECTION_STRING (optional; leave empty to skip):\n> ')
     if mongodb_connection_string:
         cfg += f'MONGODB_CONNECTION_STRING={mongodb_connection_string}\n'
