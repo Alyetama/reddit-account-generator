@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "reddit-gen"
-version = "0.1.0"
+version = "0.1.1"
 description = "Generate Reddit Accounts Automatically"
 authors = ["Mohammad Alyetama <malyetama@pm.me>"]
 license = "MIT"

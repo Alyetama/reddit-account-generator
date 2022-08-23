@@ -126,6 +126,7 @@ def _cooldown_func(time_left, solve_manually=False):
             else:
                 signal.alarm(0)
     except TimeoutError:
+        logger.info('Started cooldown period.')
         for _ in tqdm(range(time_left - 25)):
             time.sleep(1)
 
@@ -188,7 +189,7 @@ def generate(driver,
         with open(local_db) as j:
             data = json.load(j)
     else:
-        col = mongodb_client()['reddit']
+        col = mongodb_client(os.environ['MONGODB_CONNECTION_STRING'])['reddit']
         data = list(col.find({}))
 
     console.rule('Starting...', style='OK')
@@ -208,10 +209,15 @@ def generate(driver,
                            20).until(ec.presence_of_element_located(
                                (By.ID, k)))
         if k == 'regEmail':
-            el.click()
+            try:
+                el.click()
+            except ElementNotInteractableException:
+                pass
             ActionChains(driver).send_keys(v).send_keys(Keys.RETURN).perform()
         else:
             el.send_keys(v)
+        if k == 'regEmail':
+            time.sleep(2)
     time.sleep(3)
 
     now = time.time()

@@ -11,11 +11,10 @@ from platform import platform
 
 from dotenv import load_dotenv
 from loguru import logger
-from selenium.common.exceptions import WebDriverException
-
-from reddit_gen.handlers import keyboard_interrupt_handler
 from reddit_gen.generator import check_driver_path, generate, load_driver
-from reddit_gen.utils import update_account_metadata
+from reddit_gen.handlers import keyboard_interrupt_handler
+from reddit_gen.utils import is_banned_from_subreddit, update_account_metadata
+from selenium.common.exceptions import WebDriverException
 
 
 def _opts() -> argparse.Namespace:
@@ -68,6 +67,14 @@ def _opts() -> argparse.Namespace:
     parser.add_argument('--experimental-use-vpn',
                         action='store_true',
                         help='Experimental feature (unstable)')
+    parser.add_argument('--check-subreddit-ban',
+                        help='Check if your accounts are banned from a '
+                        'specific subreddit (MongoDB-only)',
+                        type=str)
+    parser.add_argument('-v',
+                        '--verbose',
+                        help='Print more logs',
+                        action='store_true')
     return parser.parse_args()
 
 
@@ -127,6 +134,12 @@ def main():
 
     if args.update_database:
         update_account_metadata()
+        sys.exit(0)
+
+    if args.check_subreddit_ban:
+        args.check_subreddit_ban = args.check_subreddit_ban.lstrip('r/')
+        is_banned_from_subreddit(subreddit=args.check_subreddit_ban,
+                                 verbose=args.verbose)
         sys.exit(0)
 
     if args.experimental_use_vpn and not args.disable_headless:
